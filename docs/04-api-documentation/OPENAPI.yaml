@@ -1,0 +1,1020 @@
+openapi: 3.0.3
+info:
+  title: Node.js Express RealWorld Example App
+  description: |
+    A fully functional Node.js Express API following the RealWorld specification.
+    This application demonstrates best practices for building REST APIs with Express.js,
+    TypeScript, Prisma ORM, and PostgreSQL.
+
+    Features include:
+    - JWT-based authentication
+    - Article CRUD operations
+    - User profiles and social features
+    - Comment system
+    - Tag management
+    - Following/favoriting functionality
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://api.example.com/api
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+# Security Schemes
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT authentication token
+
+  # Reusable Schemas
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique user identifier
+        username:
+          type: string
+          minLength: 3
+          maxLength: 20
+          pattern: '^[a-zA-Z0-9_-]+$'
+          description: Unique username
+        email:
+          type: string
+          format: email
+          description: User email address
+        bio:
+          type: string
+          nullable: true
+          description: User biography
+        image:
+          type: string
+          format: uri
+          nullable: true
+          description: Profile image URL
+        token:
+          type: string
+          description: JWT authentication token (included in auth responses)
+        demo:
+          type: boolean
+          description: Demo account flag
+      required:
+        - id
+        - username
+        - email
+        - demo
+
+    UserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          description: Username (register/update)
+        email:
+          type: string
+          description: Email address (register/update)
+        password:
+          type: string
+          minLength: 8
+          description: Password (register/update)
+        bio:
+          type: string
+          description: Biography (update)
+        image:
+          type: string
+          description: Profile image URL (update)
+
+    Profile:
+      type: object
+      properties:
+        username:
+          type: string
+          description: Username
+        bio:
+          type: string
+          nullable: true
+          description: User biography
+        image:
+          type: string
+          format: uri
+          nullable: true
+          description: Profile image URL
+        following:
+          type: boolean
+          description: Whether current user follows this user
+      required:
+        - username
+        - following
+
+    Article:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique article identifier
+        slug:
+          type: string
+          description: URL-friendly identifier
+        title:
+          type: string
+          description: Article title
+        description:
+          type: string
+          description: Article description
+        body:
+          type: string
+          description: Article content
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+        tagList:
+          type: array
+          items:
+            type: string
+          description: Article tags
+        author:
+          $ref: '#/components/schemas/Profile'
+        favorited:
+          type: boolean
+          description: Whether current user favorited this article
+        favoritesCount:
+          type: integer
+          minimum: 0
+          description: Number of users who favorited this article
+      required:
+        - id
+        - slug
+        - title
+        - description
+        - body
+        - createdAt
+        - updatedAt
+        - tagList
+        - author
+        - favorited
+        - favoritesCount
+
+    ArticleRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          description: Article title
+        description:
+          type: string
+          description: Article description
+        body:
+          type: string
+          description: Article content
+        tagList:
+          type: array
+          items:
+            type: string
+          description: List of tags
+      required:
+        - title
+        - description
+        - body
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique comment identifier
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+        body:
+          type: string
+          description: Comment content
+        author:
+          $ref: '#/components/schemas/Profile'
+      required:
+        - id
+        - createdAt
+        - updatedAt
+        - body
+        - author
+
+    CommentRequest:
+      type: object
+      properties:
+        body:
+          type: string
+          minLength: 1
+          description: Comment content
+      required:
+        - body
+
+    TagsResponse:
+      type: object
+      properties:
+        tags:
+          type: array
+          items:
+            type: string
+          description: List of popular tag names
+      required:
+        - tags
+
+    ArticlesResponse:
+      type: object
+      properties:
+        articles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Article'
+          description: List of articles
+        articlesCount:
+          type: integer
+          minimum: 0
+          description: Total number of articles matching query
+      required:
+        - articles
+        - articlesCount
+
+    SingleArticleResponse:
+      type: object
+      properties:
+        article:
+          $ref: '#/components/schemas/Article'
+      required:
+        - article
+
+    SingleCommentResponse:
+      type: object
+      properties:
+        comment:
+          $ref: '#/components/schemas/Comment'
+      required:
+        - comment
+
+    CommentsResponse:
+      type: object
+      properties:
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+          description: List of comments
+      required:
+        - comments
+
+    UserResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+      required:
+        - user
+
+    ProfileResponse:
+      type: object
+      properties:
+        profile:
+          $ref: '#/components/schemas/Profile'
+      required:
+        - profile
+
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+          description: Error status indicator
+        message:
+          type: string
+          description: Human-readable error description
+        error:
+          type: object
+          properties:
+            message:
+              type: string
+              description: Detailed error message
+      required:
+        - message
+
+  # Reusable Parameters
+  parameters:
+    Offset:
+      name: offset
+      in: query
+      description: Number of items to skip
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Limit:
+      name: limit
+      in: query
+      description: Maximum number of items to return
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Tag_Filter:
+      name: tag
+      in: query
+      description: Filter by tag
+      schema:
+        type: string
+    Author_Filter:
+      name: author
+      in: query
+      description: Filter by author username
+      schema:
+        type: string
+    Favorited_Filter:
+      name: favorited
+      in: query
+      description: Filter by user who favorited
+      schema:
+        type: string
+    ArticleSlug:
+      name: slug
+      in: path
+      description: Article slug
+      required: true
+      schema:
+        type: string
+    Username:
+      name: username
+      in: path
+      description: Username
+      required: true
+      schema:
+        type: string
+    CommentId:
+      name: id
+      in: path
+      description: Comment ID
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+  # Reusable Responses
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            unauthorized:
+              summary: No authentication token
+              value:
+                status: error
+                message: missing authorization credentials
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            not_found:
+              summary: Resource not found
+              value:
+                error:
+                  message: Resource not found
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            validation:
+              summary: Invalid input
+              value:
+                error:
+                  message: Validation failed
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            server:
+              summary: Server error
+              value:
+                error:
+                  message: Internal server error
+
+# API Paths
+paths:
+  # Authentication
+  /users:
+    post:
+      tags:
+        - Authentication
+      summary: User Registration
+      description: Create a new user account
+      operationId: createUser
+      requestBody:
+        description: User registration details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user:
+                  $ref: '#/components/schemas/UserRequest'
+              required:
+                - user
+            examples:
+              valid:
+                summary: Valid user registration
+                value:
+                  user:
+                    username: "johndoe"
+                    email: "john@example.com"
+                    password: "password123"
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              examples:
+                success:
+                  summary: Successful registration
+                  value:
+                    user:
+                      id: 1
+                      username: "johndoe"
+                      email: "john@example.com"
+                      bio: null
+                      image: null
+                      token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      demo: false
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /users/login:
+    post:
+      tags:
+        - Authentication
+      summary: User Login
+      description: Authenticate user and return JWT token
+      operationId: loginUser
+      requestBody:
+        description: Login credentials
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user:
+                  type: object
+                  properties:
+                    email:
+                      type: string
+                      format: email
+                    password:
+                      type: string
+                  required:
+                    - email
+                    - password
+              required:
+                - user
+            examples:
+              valid:
+                summary: Valid login
+                value:
+                  user:
+                    email: "john@example.com"
+                    password: "password123"
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              examples:
+                success:
+                  summary: Successful login
+                  value:
+                    user:
+                      id: 1
+                      username: "johndoe"
+                      email: "john@example.com"
+                      bio: null
+                      image: null
+                      token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      demo: false
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid:
+                  summary: Invalid credentials
+                  value:
+                    error:
+                      message: Invalid credentials
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /user:
+    get:
+      security:
+        - BearerAuth: []
+      tags:
+        - Authentication
+      summary: Get Current User
+      description: Get currently authenticated user profile
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: User data retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              examples:
+                success:
+                  summary: Current user data
+                  value:
+                    user:
+                      id: 1
+                      username: "johndoe"
+                      email: "john@example.com"
+                      bio: "Software developer"
+                      image: "https://example.com/avatar.jpg"
+                      token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      demo: false
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      security:
+        - BearerAuth: []
+      tags:
+        - Authentication
+      summary: Update User
+      description: Update currently authenticated user profile
+      operationId: updateUser
+      requestBody:
+        description: User profile updates
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user:
+                  $ref: '#/components/schemas/UserRequest'
+              required:
+                - user
+            examples:
+              partial:
+                summary: Partial update
+                value:
+                  user:
+                    bio: "Updated bio"
+                    image: "https://example.com/new-avatar.jpg"
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  # Articles
+  /articles:
+    get:
+      tags:
+        - Articles
+      summary: Get Articles
+      description: Get paginated list of articles with optional filtering
+      operationId: getArticles
+      parameters:
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Tag_Filter'
+        - $ref: '#/components/parameters/Author_Filter'
+        - $ref: '#/components/parameters/Favorited_Filter'
+      responses:
+        '200':
+          description: Articles retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticlesResponse'
+
+    post:
+      security:
+        - BearerAuth: []
+      tags:
+        - Articles
+      summary: Create Article
+      description: Create a new article
+      operationId: createArticle
+      requestBody:
+        description: Article data
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                article:
+                  $ref: '#/components/schemas/ArticleRequest'
+              required:
+                - article
+            examples:
+              valid:
+                summary: Valid article
+                value:
+                  article:
+                    title: "How to Build APIs"
+                    description: "A comprehensive guide to API development"
+                    body: "Building APIs requires careful consideration of various factors..."
+                    tagList: ["API", "Node.js", "Express"]
+      responses:
+        '201':
+          description: Article created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleArticleResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /articles/feed:
+    get:
+      security:
+        - BearerAuth: []
+      tags:
+        - Articles
+      summary: Get Feed Articles
+      description: Get paginated feed of articles from followed users
+      operationId: getFeed
+      parameters:
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Feed articles retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticlesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /articles/{slug}:
+    get:
+      tags:
+        - Articles
+      summary: Get Single Article
+      description: Get specific article by slug
+      operationId: getArticle
+      parameters:
+        - $ref: '#/components/parameters/ArticleSlug'
+      responses:
+        '200':
+          description: Article retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleArticleResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      security:
+        - BearerAuth: []
+      tags:
+        - Articles
+      summary: Update Article
+      description: Update existing article (author only)
+      operationId: updateArticle
+      parameters:
+        - $ref: '#/components/parameters/ArticleSlug'
+      requestBody:
+        description: Article updates
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                article:
+                  $ref: '#/components/schemas/ArticleRequest'
+              required:
+                - article
+      responses:
+        '200':
+          description: Article updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleArticleResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Not authorized to update this article
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+    delete:
+      security:
+        - BearerAuth: []
+      tags:
+        - Articles
+      summary: Delete Article
+      description: Delete article (author only)
+      operationId: deleteArticle
+      parameters:
+        - $ref: '#/components/parameters/ArticleSlug'
+      responses:
+        '204':
+          description: Article deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Not authorized to delete this article
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Comments
+  /articles/{slug}/comments:
+    get:
+      tags:
+        - Comments
+      summary: Get Article Comments
+      description: Get comments for a specific article
+      operationId: getArticleComments
+      parameters:
+        - $ref: '#/components/parameters/ArticleSlug'
+      responses:
+        '200':
+          description: Comments retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentsResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      security:
+        - BearerAuth: []
+      tags:
+        - Comments
+      summary: Add Comment
+      description: Add a comment to an article
+      operationId: addComment
+      parameters:
+        - $ref: '#/components/parameters/ArticleSlug'
+      requestBody:
+        description: Comment data
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  $ref: '#/components/schemas/CommentRequest'
+              required:
+                - comment
+      responses:
+        '200':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleCommentResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /articles/{slug}/comments/{id}:
+    delete:
+      security:
+        - BearerAuth: []
+      tags:
+        - Comments
+      summary: Delete Comment
+      description: Delete comment (author only)
+      operationId: deleteComment
+      parameters:
+        - $ref: '#/components/parameters/ArticleSlug'
+        - $ref: '#/components/parameters/CommentId'
+      responses:
+        '200':
+          description: Comment deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Not authorized to delete this comment
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Favorites
+  /articles/{slug}/favorite:
+    post:
+      security:
+        - BearerAuth: []
+      tags:
+        - Favorites
+      summary: Favorite Article
+      description: Favorite an article
+      operationId: favoriteArticle
+      parameters:
+        - $ref: '#/components/parameters/ArticleSlug'
+      responses:
+        '200':
+          description: Article favorited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleArticleResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      security:
+        - BearerAuth: []
+      tags:
+        - Favorites
+      summary: Unfavorite Article
+      description: Unfavorite an article
+      operationId: unfavoriteArticle
+      parameters:
+        - $ref: '#/components/parameters/ArticleSlug'
+      responses:
+        '200':
+          description: Article unfavorited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleArticleResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Profiles
+  /profiles/{username}:
+    get:
+      tags:
+        - Profiles
+      summary: Get Profile
+      description: Get user profile by username
+      operationId: getProfile
+      parameters:
+        - $ref: '#/components/parameters/Username'
+      responses:
+        '200':
+          description: Profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /profiles/{username}/follow:
+    post:
+      security:
+        - BearerAuth: []
+      tags:
+        - Profiles
+      summary: Follow User
+      description: Follow a user
+      operationId: followUser
+      parameters:
+        - $ref: '#/components/parameters/Username'
+      responses:
+        '200':
+          description: User followed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      security:
+        - BearerAuth: []
+      tags:
+        - Profiles
+      summary: Unfollow User
+      description: Unfollow a user
+      operationId: unfollowUser
+      parameters:
+        - $ref: '#/components/parameters/Username'
+      responses:
+        '200':
+          description: User unfollowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Tags
+  /tags:
+    get:
+      tags:
+        - Tags
+      summary: Get Tags
+      description: Get list of popular tags (top 10)
+      operationId: getTags
+      responses:
+        '200':
+          description: Tags retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagsResponse'
+              examples:
+                success:
+                  summary: Tags response
+                  value:
+                    tags: ["React", "Node.js", "JavaScript", "API", "Express", "Database", "PostgreSQL", "Prisma", "TypeScript", "Testing"]
+
+tags:
+  - name: Authentication
+    description: User authentication and profile management
+  - name: Articles
+    description: Article creation, reading, and management
+  - name: Comments
+    description: Comment management on articles
+  - name: Favorites
+    description: Article favoriting functionality
+  - name: Profiles
+    description: User profiles and social interactions
+  - name: Tags
+    description: Tag and content categorization
