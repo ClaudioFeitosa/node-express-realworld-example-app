@@ -1,0 +1,78 @@
+Execute Phase 04 - API Documentation.
+
+Read and follow:
+
+* .ai/project-plan.md
+* .ai/phases/04-api-documentation.md
+
+Review the existing artifacts before starting:
+
+* docs/01-discovery/API-CONTRACT.md
+* docs/01-discovery/AS-IS.md
+* docs/01-discovery/ARCHITECTURE.md
+* docs/03-integration-tests/TEST-STRATEGY.md
+* docs/03-integration-tests/BASELINE-RESULTS.md
+
+Analyze the current implementation and test suite to validate the API contract.
+
+Objectives:
+
+* Generate an OpenAPI specification for the current API.
+* Configure Swagger documentation.
+* Ensure the documented contract matches the actual implementation.
+* Create a maintainable API documentation baseline.
+
+Requirements:
+
+* Use the implementation and integration tests as the source of truth.
+* Document every discoverable endpoint.
+* Include request schemas.
+* Include response schemas.
+* Include authentication requirements.
+* Include error responses.
+* Include examples whenever possible.
+* Identify undocumented behaviors.
+
+Generate:
+
+* docs/04-api-documentation/README.md
+* docs/04-api-documentation/OPENAPI.yaml
+* docs/04-api-documentation/SWAGGER.md
+* docs/04-api-documentation/API-DOCUMENTATION-REPORT.md
+
+If Swagger is not yet configured:
+
+* Implement Swagger/OpenAPI support.
+* Document how to access the Swagger UI.
+* Document configuration decisions.
+
+For each endpoint include:
+
+* Method
+* Path
+* Summary
+* Description
+* Parameters
+* Request Body
+* Responses
+* Authentication Requirements
+* Error Responses
+* Examples
+
+Validate:
+
+* API-CONTRACT.md consistency
+* Integration test consistency
+* OpenAPI specification consistency
+
+At the end provide:
+
+* API inventory summary
+* Swagger configuration summary
+* Documentation coverage summary
+* Inconsistencies identified
+* Recommended next actions
+
+Do not change business behavior during this phase.
+
+The goal is documentation and contract formalization only.
